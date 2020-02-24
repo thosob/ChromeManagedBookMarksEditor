@@ -5,6 +5,9 @@ using System.Threading.Tasks;
 using ChromeManagedBookmarksEditor.Model;
 using System.Collections.ObjectModel;
 using System.Text.RegularExpressions;
+using System.Text;
+using Newtonsoft.Json;
+using System.Globalization;
 
 namespace ChromeManagedBookmarksEditor.Helpers
 {
@@ -25,11 +28,10 @@ namespace ChromeManagedBookmarksEditor.Helpers
 
         private static string _ConvertToJSON(Folder RootFolder)
         {
-            string convertedJSON = string.Empty;
-
-            string topLevelName = $"[{{\"toplevel_name\":\"{RootFolder.Name}\"}},";
-
-            convertedJSON = topLevelName;
+            //string convertedJSON = string.Empty;
+            //string topLevelName = $"[{{\"toplevel_name\":\"{RootFolder.Name}\"}},";
+            //convertedJSON = topLevelName;
+            string convertedJSON = "[";
 
             ObservableCollection<string> JSONCollection = new ObservableCollection<string>();
 
@@ -109,76 +111,52 @@ namespace ChromeManagedBookmarksEditor.Helpers
             return ReturnableManagedBookmarks;
         }
 
-        private static ManagedBookmarks _ParseJSON(string JSONCode)
+        private static Folder CreateFoldersRecursively(IEnumerable<ManagedBookmarkJsonModel> managedBookmarkJsonModels, Folder workingFolder) 
         {
-            ManagedBookmarks ParsedBookmarks = new ManagedBookmarks();
-            try
-            {
-                string StrippedJSONData = JSONCode.Replace("},{", "}|{");
-                StrippedJSONData = StrippedJSONData.Replace("\",\"", "\"|\"");
-                StrippedJSONData = StrippedJSONData.Replace("{", "");
-                StrippedJSONData = StrippedJSONData.Replace("}", "");
-                StrippedJSONData = StrippedJSONData.Replace("\"", "");
-                StrippedJSONData = StrippedJSONData.Remove(0, 1);
-                StrippedJSONData = StrippedJSONData.Remove(StrippedJSONData.Count() - 1, 1);
-
-                List<string> JSONDataList = new List<string>();
-                JSONDataList = StrippedJSONData.Split('|').ToList<string>();
-
-                Folder WorkingFolder = new Folder();
-                string lastName = "";
-
-                foreach (string data in JSONDataList)
+            foreach (var item in managedBookmarkJsonModels) {
+                if (item.URL != null && item.URL != "")
                 {
-                    string[] CurrentData = data.Split(':');
-
-                    switch (CurrentData[0])
+                    URL newUrl = new URL { Name = item.Name, Url = item.URL };
+                    workingFolder.URLs.Add(newUrl);
+                }
+                else
+                {
+                    if (item.Children != null && item.Children.Count() > 0)
                     {
-                        case "toplevel_name":
-                            {
-                                ParsedBookmarks.RootFolder.Name = CurrentData[1];
-                                ParsedBookmarks.RootFolder.FolderIndex = 0;
-                                WorkingFolder = ParsedBookmarks.RootFolder;
-                                break;
-                            }
-                        case "children":
-                            {
-                                Folder newFolder = new Folder { Name = lastName };
-                                newFolder.Parent = WorkingFolder;
-                                newFolder.FolderIndex = WorkingFolder.FolderIndex + 1;
-                                WorkingFolder.folders.Add(newFolder);
-
-                                if (data != "children:[]")
-                                {
-                                    lastName = data.Substring(10).Split(':')[1];
-                                    WorkingFolder = WorkingFolder.folders.Where(x => x == newFolder).FirstOrDefault();
-                                }
-                                break;
-                            }
-                        case "name":
-                            {
-                                lastName = CurrentData[1];
-                                break;
-                            }
-                        case "url":
-                            {
-                                URL newURL = new URL { Name = lastName, Url = String.Join(":", CurrentData) };
-
-                                bool FolderEnd = CurrentData[CurrentData.Count() - 1].EndsWith("]");
-                                newURL.Url = newURL.Url.Remove(0, 4);
-
-                                WorkingFolder.URLs.Add(newURL);
-
-                                if (FolderEnd) { WorkingFolder = WorkingFolder.Parent; }
-
-                                break;
-                            }
+                        Folder newFolder = CreateFoldersRecursively(item.Children, new Folder());
+                        newFolder.Name = item.Name;
+                        newFolder.Parent = workingFolder;
+                        newFolder.FolderIndex = workingFolder.FolderIndex + 1;
+                        workingFolder.folders.Add(newFolder);
+                    }
+                    else
+                    {
+                        //If the folder is empty
+                        Folder newFolder = new Folder();
+                        newFolder.Name = item.Name;
+                        newFolder.Parent = workingFolder;
+                        newFolder.FolderIndex = workingFolder.FolderIndex + 1;
+                        workingFolder.folders.Add(newFolder);
                     }
                 }
             }
-            catch(Exception ex) { }
+            return workingFolder;
+        }
 
-            return ParsedBookmarks;
+        private static ManagedBookmarks _ParseJSON(string JSONCode)
+        {
+            ManagedBookmarks parsedBookmarks = new ManagedBookmarks();
+            try
+            {
+                
+                var managedBookmark = JsonConvert.DeserializeObject<List<ManagedBookmarkJsonModel>>(JSONCode);                
+                parsedBookmarks.RootFolder = CreateFoldersRecursively(managedBookmark, new Folder() { FolderIndex = 0, Name = "root" });              
+            }
+            catch(Exception ex) {
+                Console.WriteLine(ex);
+            }
+
+            return parsedBookmarks;
         }
     }
 }

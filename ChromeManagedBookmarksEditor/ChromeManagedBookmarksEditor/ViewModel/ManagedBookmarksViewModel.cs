@@ -5,6 +5,8 @@ using ChromeManagedBookmarksEditor.Model;
 using ChromeManagedBookmarksEditor.Helpers;
 using System.Linq;
 using System.Windows.Threading;
+using Microsoft.Win32;
+using System.IO;
 
 namespace ChromeManagedBookmarksEditor.ViewModel
 {
@@ -28,7 +30,8 @@ namespace ChromeManagedBookmarksEditor.ViewModel
         public MyICommand AddUrlCommand { get; set; }
         public MyICommand LoadCommand { get; set; }
         public MyICommand CopyCommand { get; set; }
-
+        public MyICommand WriteToFileCommand { get; set; }
+        public MyICommand LoadFromFileCommand { get; set; }
         private NavigationViewModel _navigationViewModel { get; set; }
         public static ManagedBookmarks ChromeBookmarks { get; set; }
         public BannerData Banners { get; set; }
@@ -53,24 +56,26 @@ namespace ChromeManagedBookmarksEditor.ViewModel
             LoadCommand = new MyICommand(OnLoadCommand, CanLoadCommand);
             ClearAllCommand = new MyICommand(OnClearAllCommand, CanClearAllCommand);
             SerializeCommand = new MyICommand(OnSerializeCommand, CanSerializeCommand);
-            ShowHelpCommand = new MyICommand(onShowHelpCommand, canShowHelpCommand);
+            ShowHelpCommand = new MyICommand(OnShowHelpCommand, CanShowHelpCommand);
+            LoadFromFileCommand = new MyICommand(OnLoadFromFileCommand, CanLoadFromFileCommand);
+            WriteToFileCommand = new MyICommand(OnWriteToFileCommand, CanWriteToFileCommand);
 
             //Alert Banner Commands
             ConfirmAlertBannerCommand = new MyICommand(onConfirmAlertBannerCommand, canConfirmAlertBannerCommand);
             CancelAlertBannerCommand = new MyICommand(onCancelAlertBannerCommand, canCancelAlertBannerCommand);
             //Folder Banner Commands
-            ConfirmFolderBannerCommand = new MyICommand(OnConfirmFolderBannerCommand, canConfirmFolderBannerCommand);
-            CancelFolderBannerCommand = new MyICommand(onCancelFolderBannerCommand, canCancelFolderBannerCommand);
+            ConfirmFolderBannerCommand = new MyICommand(OnConfirmFolderBannerCommand, CanConfirmFolderBannerCommand);
+            CancelFolderBannerCommand = new MyICommand(onCancelFolderBannerCommand, CanCancelFolderBannerCommand);
             //Item Commands
-            AddNewFolderCommand = new MyICommand(onAddFolderCommand, canAddFolderCommand);
-            RenameSelectedFolderCommand = new MyICommand(onRenameSelectedFolderCommand, canRenameSelectedFolderCommand);
-            RenameParentFolderCommand = new MyICommand(onRenameParentFolderCommand, canRenameParentFolderCommand);
+            AddNewFolderCommand = new MyICommand(OnAddFolderCommand, canAddFolderCommand);
+            RenameSelectedFolderCommand = new MyICommand(OnRenameSelectedFolderCommand, CanRenameSelectedFolderCommand);
+            RenameParentFolderCommand = new MyICommand(OnRenameParentFolderCommand, CanRenameParentFolderCommand);
             AddUrlCommand = new MyICommand(onAddUrlCommand, CanAddUrlCommand);
             RemoveSelectedCommand = new MyICommand(onRemoveSelectedCommand, canRemoveSelectedCommand);
-            ItemSelectedCommand = new MyICommand(onItemSelectedCommand, canItemSelectedCommand);
+            ItemSelectedCommand = new MyICommand(OnItemSelectedCommand, CanItemSelectedCommand);
             //Folder access commands
-            EnterFolderCommand = new MyICommand(onEnterFolderCommand, canEnterFolderCommand);
-            ExitFolderCommand = new MyICommand(onExitFolderCommand, canExitFolderCommand);
+            EnterFolderCommand = new MyICommand(OnEnterFolderCommand, CanEnterFolderCommand);
+            ExitFolderCommand = new MyICommand(OnExitFolderCommand, CanExitFolderCommand);
 
             CopyTimer.Interval = TimeSpan.FromSeconds(2);
             CopyTimer.Tick += CopyTimer_Tick;
@@ -107,7 +112,7 @@ namespace ChromeManagedBookmarksEditor.ViewModel
         #endregion
 
         #region Commands Code
-        private void onRenameParentFolderCommand(object parameter)
+        private void OnRenameParentFolderCommand(object parameter)
         {
             if (parameter is Folder folderToRename)
             {
@@ -115,18 +120,18 @@ namespace ChromeManagedBookmarksEditor.ViewModel
                 Banners.ShowFolderBanner($"Enter a new name for '{folderToRename.Name}'", "Rename", BannerData.BannerAction.RenameFolder);
             }
         }
-        private bool canRenameParentFolderCommand()
+        private bool CanRenameParentFolderCommand()
         {
             return true;
         }
-        private void onRenameSelectedFolderCommand(object parameter)
+        private void OnRenameSelectedFolderCommand(object parameter)
         {
             if(parameter is Folder folderToRename)
             {
                 Banners.ShowFolderBanner($"Enter a new name for '{folderToRename.Name}'", "Rename", BannerData.BannerAction.RenameFolder);
             }
         }
-        private bool canRenameSelectedFolderCommand()
+        private bool CanRenameSelectedFolderCommand()
         {
             return true;
         }
@@ -148,12 +153,12 @@ namespace ChromeManagedBookmarksEditor.ViewModel
                     }
             }
         }
-        private bool canCancelFolderBannerCommand()
+        private bool CanCancelFolderBannerCommand()
         {
             return true;
         }
         
-        private void onEnterFolderCommand(object parameter)
+        private void OnEnterFolderCommand(object parameter)
         {
             if (parameter is Folder subFolder)
             {
@@ -161,22 +166,22 @@ namespace ChromeManagedBookmarksEditor.ViewModel
                 UpdateWorkingPath();
             }
         }
-        private bool canEnterFolderCommand()
+        private bool CanEnterFolderCommand()
         {
             return ChromeBookmarks.CurrentWorkingFolder.folders.Where(x => x.IsSelected).Count() > 0;
         }
 
-        public void onExitFolderCommand(object parameter)
+        public void OnExitFolderCommand(object parameter)
         {
             ChromeBookmarks.CurrentWorkingFolder = ChromeBookmarks.CurrentWorkingFolder.Parent;
             UpdateWorkingPath();
         }
-        public bool canExitFolderCommand()
+        public bool CanExitFolderCommand()
         {
             return ChromeBookmarks.CurrentWorkingFolder.FolderIndex != 0;
         }
 
-        public void onItemSelectedCommand(object parameter)
+        public void OnItemSelectedCommand(object parameter)
         {
             ClearSelectedItems();
 
@@ -193,16 +198,47 @@ namespace ChromeManagedBookmarksEditor.ViewModel
             EnterFolderCommand.RaiseCanExecuteChanged();
             RemoveSelectedCommand.RaiseCanExecuteChanged();
         }
-        public bool canItemSelectedCommand()
+        public bool CanItemSelectedCommand()
+        {
+            return true;
+        }
+        public void OnLoadFromFileCommand(object parameter)
+        {
+            OpenFileDialog openFileDialog = new OpenFileDialog();
+            if (openFileDialog.ShowDialog() == true)
+            {
+                string test = File.ReadAllText(openFileDialog.FileName);
+                Json.Code = test;                
+                OnLoadCommand(null);
+            }
+
+        }
+
+        public bool CanWriteToFileCommand()
         {
             return true;
         }
 
-        public void onShowHelpCommand(object parameter)
+        public void OnWriteToFileCommand(object parameter)
+        {
+            OnSerializeCommand(parameter);
+            SaveFileDialog saveFileDialog = new SaveFileDialog();            
+            if (saveFileDialog.ShowDialog() == true)
+            {
+                File.WriteAllText(saveFileDialog.FileName, Json.Code);
+            }
+        }
+
+        public bool CanLoadFromFileCommand()
+        {
+            return true;
+        }
+
+        public void OnShowHelpCommand(object parameter)
         {
             _navigationViewModel.SelectedViewModel = new HelpViewModel(_navigationViewModel);
         }
-        public bool canShowHelpCommand()
+        public bool CanShowHelpCommand()
         {
             return true;
         }
@@ -211,11 +247,10 @@ namespace ChromeManagedBookmarksEditor.ViewModel
         {
             if (Info.SerializingAnimation != Visibility.Visible)
             {
-                string ConvertedCode = string.Empty;
                 Info.SerializingAnimation = Visibility.Visible;
                 LoadCommand.RaiseCanExecuteChanged();
                 Info.SerializeText = "Serializing...";
-                ConvertedCode = await ChromeJSONConverter.ConvertToJSON(ChromeBookmarks.RootFolder);
+                string ConvertedCode = await ChromeJSONConverter.ConvertToJSON(ChromeBookmarks.RootFolder);
                 Json.Code = ConvertedCode;
                 Info.SerializeText = "Serialize";
                 Info.SerializingAnimation = Visibility.Hidden;
@@ -286,7 +321,7 @@ namespace ChromeManagedBookmarksEditor.ViewModel
             return Info.SerializingAnimation != Visibility.Visible;
         }
 
-        private void onAddFolderCommand(object parameter)
+        private void OnAddFolderCommand(object parameter)
         {
             Banners.ShowFolderBanner("New Folder Name", "Add Folder", BannerData.BannerAction.AddNewFolder);
         }
@@ -391,7 +426,7 @@ namespace ChromeManagedBookmarksEditor.ViewModel
                     }
             }
         }
-        private bool canConfirmFolderBannerCommand()
+        private bool CanConfirmFolderBannerCommand()
         {
             return true;
         }

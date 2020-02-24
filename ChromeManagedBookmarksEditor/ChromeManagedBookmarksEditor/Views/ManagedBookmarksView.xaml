@@ -7,7 +7,7 @@
              xmlns:gif="http://wpfanimatedgif.codeplex.com"
              xmlns:cc="clr-namespace:ChromeManagedBookmarksEditor.CustomControls"
              mc:Ignorable="d"
-             d:DesignHeight="300" d:DesignWidth="300" IsTabStop="False">
+             d:DesignHeight="600" d:DesignWidth="600" IsTabStop="False">
 
     <Grid>
         <Grid.ColumnDefinitions>
@@ -25,19 +25,30 @@
             <RowDefinition Height="50"/>
             <RowDefinition Height="50"/>
             <RowDefinition Height="50"/>
+            <RowDefinition Height="150"/>
+            <RowDefinition Height="50"/>
             <RowDefinition Height="10"/>
         </Grid.RowDefinitions>
 
         <!-- Container for Inner view WIP -->
         <DockPanel LastChildFill="True" Grid.Column="1" Grid.ColumnSpan="2" 
-                   Grid.Row="1" Grid.RowSpan="4" Margin="3">
+                   Grid.Row="1" Grid.RowSpan="6" Margin="3">
             <views:CurrentFolderView/>
         </DockPanel>
 
         <Button Content="Help" Grid.Column="3" Grid.Row="1"
                 Style="{StaticResource MainButtonStyle}"
                 Command="{Binding ShowHelpCommand}"/>
-        <cc:AsyncOperationButton Grid.Column="3" Grid.Row="3"
+        <Button Content="Help" Grid.Column="3" Grid.Row="1"
+                Style="{StaticResource MainButtonStyle}"
+                Command="{Binding ShowHelpCommand}"/>
+        <Button Content="{Binding Info.LoadFromFile}" Grid.Column="3" Grid.Row="3"
+                Style="{StaticResource MainButtonStyle}"
+                Command="{Binding LoadFromFileCommand}"/>
+        <Button Content="{Binding Info.WriteToFile}" Grid.Column="3" Grid.Row="4"
+                Style="{StaticResource MainButtonStyle}"
+                Command="{Binding WriteToFileCommand}"/>
+        <cc:AsyncOperationButton Grid.Column="3" Grid.Row="5"
                 Style="{StaticResource MainButtonStyle}"
                 Command="{Binding SerializeCommand}">
             <Grid>
@@ -48,11 +59,11 @@
                            Style="{StaticResource MainButtonTextBlock}"/>
             </Grid>
         </cc:AsyncOperationButton>
-        <Button Content="{Binding Info.CopyText}" Grid.Column="3" Grid.Row="4"
+        <Button Content="{Binding Info.CopyText}" Grid.Column="3" Grid.Row="6"
                 Style="{StaticResource MainButtonStyle}"
                 Command="{Binding CopyCommand}"/>
-        <TextBox Text="{Binding Json.Code, UpdateSourceTrigger=PropertyChanged, Mode=TwoWay}" 
-                 Grid.Column="1" Grid.Row="5" Grid.ColumnSpan="3" Background="Gainsboro"
+        <TextBox AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Visible" Text="{Binding Json.Code, UpdateSourceTrigger=PropertyChanged, Mode=TwoWay}" 
+                 Grid.Column="1" Grid.Row="7" Grid.ColumnSpan="3" Background="Gainsboro" 
                  Style="{StaticResource MainTextBoxStyle}"
                  >
             <TextBox.InputBindings>
@@ -61,7 +72,7 @@
                             />
             </TextBox.InputBindings>
         </TextBox>
-        <cc:AsyncOperationButton Grid.Column="2" Grid.Row="6"
+        <cc:AsyncOperationButton Grid.Column="2" Grid.Row="8"
                 Style="{StaticResource MainButtonStyle}"
                 Command="{Binding LoadCommand}">
             <Grid>

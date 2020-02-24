@@ -95,6 +95,8 @@ namespace ChromeManagedBookmarksEditor.Model
         public string LoadText { get; set; } = "Load";
         public string CopyText { get; set; } = "Copy";
         public string SerializeText { get; set; } = "Serialize";
+        public string LoadFromFile { get; set; } = "Load From File";
+        public string WriteToFile { get; set; } = "Write To File";
 
         public Visibility SerializingAnimation { get; set; } = Visibility.Hidden;
     }
