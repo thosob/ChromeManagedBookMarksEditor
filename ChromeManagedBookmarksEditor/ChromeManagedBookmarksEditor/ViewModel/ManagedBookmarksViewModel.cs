@@ -204,7 +204,7 @@ namespace ChromeManagedBookmarksEditor.ViewModel
         }
         public void OnLoadFromFileCommand(object parameter)
         {
-            OpenFileDialog openFileDialog = new OpenFileDialog();
+            OpenFileDialog openFileDialog = new OpenFileDialog();            
             if (openFileDialog.ShowDialog() == true)
             {
                 string test = File.ReadAllText(openFileDialog.FileName);
@@ -222,7 +222,10 @@ namespace ChromeManagedBookmarksEditor.ViewModel
         public void OnWriteToFileCommand(object parameter)
         {
             OnSerializeCommand(parameter);
-            SaveFileDialog saveFileDialog = new SaveFileDialog();            
+            SaveFileDialog saveFileDialog = new SaveFileDialog();
+            saveFileDialog.DefaultExt = "json";
+            saveFileDialog.Title = "Save Json File";
+            saveFileDialog.Filter = "Json files (*.json)|*.json|*.txt|Text files (*.txt)|All files (*.*)|*.*";
             if (saveFileDialog.ShowDialog() == true)
             {
                 File.WriteAllText(saveFileDialog.FileName, Json.Code);

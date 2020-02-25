@@ -114,29 +114,34 @@ namespace ChromeManagedBookmarksEditor.Helpers
         private static Folder CreateFoldersRecursively(IEnumerable<ManagedBookmarkJsonModel> managedBookmarkJsonModels, Folder workingFolder) 
         {
             foreach (var item in managedBookmarkJsonModels) {
-                if (item.URL != null && item.URL != "")
+                //To ensures compatibility of former created json files
+                //toplevel is ignored, since it seems not to be necessary for chrome
+                if (item.ToplevelName == null)
                 {
-                    URL newUrl = new URL { Name = item.Name, Url = item.URL };
-                    workingFolder.URLs.Add(newUrl);
-                }
-                else
-                {
-                    if (item.Children != null && item.Children.Count() > 0)
+                    if (item.URL != null && item.URL != "")
                     {
-                        Folder newFolder = CreateFoldersRecursively(item.Children, new Folder());
-                        newFolder.Name = item.Name;
-                        newFolder.Parent = workingFolder;
-                        newFolder.FolderIndex = workingFolder.FolderIndex + 1;
-                        workingFolder.folders.Add(newFolder);
+                        URL newUrl = new URL { Name = item.Name, Url = item.URL };
+                        workingFolder.URLs.Add(newUrl);
                     }
                     else
                     {
-                        //If the folder is empty
-                        Folder newFolder = new Folder();
-                        newFolder.Name = item.Name;
-                        newFolder.Parent = workingFolder;
-                        newFolder.FolderIndex = workingFolder.FolderIndex + 1;
-                        workingFolder.folders.Add(newFolder);
+                        if (item.Children != null && item.Children.Count() > 0)
+                        {
+                            Folder newFolder = CreateFoldersRecursively(item.Children, new Folder());
+                            newFolder.Name = item.Name;
+                            newFolder.Parent = workingFolder;
+                            newFolder.FolderIndex = workingFolder.FolderIndex + 1;
+                            workingFolder.folders.Add(newFolder);
+                        }
+                        else
+                        {
+                            //If the folder is empty
+                            Folder newFolder = new Folder();
+                            newFolder.Name = item.Name;
+                            newFolder.Parent = workingFolder;
+                            newFolder.FolderIndex = workingFolder.FolderIndex + 1;
+                            workingFolder.folders.Add(newFolder);
+                        }
                     }
                 }
             }

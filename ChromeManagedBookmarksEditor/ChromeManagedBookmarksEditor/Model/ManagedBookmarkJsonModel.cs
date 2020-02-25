@@ -15,5 +15,7 @@ namespace ChromeManagedBookmarksEditor.Model
         public IEnumerable<ManagedBookmarkJsonModel> Children { get; set; }
         [JsonProperty("url")]
         public string URL { get; set; }
+        [JsonProperty("toplevel_name")]
+        public string ToplevelName { get; set; }
     }
 }
